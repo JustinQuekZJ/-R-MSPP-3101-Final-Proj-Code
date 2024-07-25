@@ -1,0 +1,214 @@
+library(tidyverse)
+library(janitor)
+library(lubridate)
+
+# Loading 2023 data as a base
+raw_sqf_2023 <- read_csv("sqf-2023.csv") %>% 
+  clean_names() %>% 
+  mutate(year = 2023)
+
+sqf_2023 <- raw_sqf_2023 %>% 
+  select(year, stop_duration_minutes, officer_explained_stop_flag, suspect_arrested_flag, 
+         suspect_reported_age, suspect_sex, suspect_race_description,
+         stop_location_precinct, stop_location_boro_name) %>% 
+  filter(!is.na(suspect_race_description), suspect_race_description != "(null)") %>% 
+  mutate(updated_race = if_else(
+    condition = suspect_race_description == "BLACK HISPANIC" | suspect_race_description == "WHITE HISPANIC",
+    true = "HISPANIC",
+    false = suspect_race_description
+  )) ## combines "Black Hispanic" and "White Hispanic" into a single "Hispanic" category
+
+## Merging dataframes across years
+
+##### 2022 data #####
+raw_sqf_2022 <- read_csv("sqf-2022.csv") %>% 
+  clean_names() %>% 
+  mutate(year = 2022)
+
+sqf_2022 <- raw_sqf_2022 %>% 
+  select(year, stop_duration_minutes, officer_explained_stop_flag,suspect_arrested_flag, 
+         suspect_reported_age, suspect_sex, suspect_race_description,
+         stop_location_precinct, stop_location_boro_name) %>% 
+  filter(!is.na(suspect_race_description), suspect_race_description != "(null)") %>% 
+  mutate(updated_race = if_else(
+    condition = suspect_race_description == "BLACK HISPANIC" | suspect_race_description == "WHITE HISPANIC",
+    true = "HISPANIC",
+    false = suspect_race_description))
+
+##### 2021 data #####
+raw_sqf_2021 <- read_csv("sqf-2021.csv") %>% 
+  clean_names() %>% 
+  mutate(year = 2021)
+
+sqf_2021 <- raw_sqf_2021 %>% 
+  select(year, stop_duration_minutes, officer_explained_stop_flag, suspect_arrested_flag, 
+         suspect_reported_age, suspect_sex, suspect_race_description,
+         stop_location_precinct, stop_location_boro_name) %>% 
+  filter(!is.na(suspect_race_description), suspect_race_description != "(null)") %>% 
+  mutate(updated_race = if_else(
+    condition = suspect_race_description == "BLACK HISPANIC" | suspect_race_description == "WHITE HISPANIC",
+    true = "HISPANIC",
+    false = suspect_race_description))
+
+##### 2020 data #####
+raw_sqf_2020 <- read_csv("sqf-2020.csv") %>% 
+  clean_names() %>% 
+  mutate(year = 2020)
+
+sqf_2020 <- raw_sqf_2020 %>% 
+  select(year, stop_duration_minutes, officer_explained_stop_flag, suspect_arrested_flag, 
+         suspect_reported_age, suspect_sex, suspect_race_description,
+         stop_location_precinct, stop_location_boro_name) %>% 
+  filter(!is.na(suspect_race_description), suspect_race_description != "(null)") %>% 
+  mutate(updated_race = case_when(
+    suspect_race_description == "BLACK HISPANIC" | suspect_race_description == "WHITE HISPANIC" ~ "HISPANIC",
+    suspect_race_description == "AMERICAN INDIAN/ALASKAN N" ~ "AMERICAN INDIAN/ALASKAN NATIVE",
+    suspect_race_description == "MIDDLE EASTERN/SOUTHWEST" ~ "MIDDLE EASTERN/SOUTHWEST ASIAN",
+    TRUE ~ suspect_race_description)) # inconsistencies in racial group names, had to rename
+
+##### 2019 data #####
+raw_sqf_2019 <- read_csv("sqf-2019.csv") %>% 
+  clean_names() %>% 
+  mutate(year = 2019)
+
+sqf_2019 <- raw_sqf_2019 %>% 
+  select(year, stop_duration_minutes, officer_explained_stop_flag, suspect_arrested_flag, 
+         suspect_reported_age, suspect_sex, suspect_race_description,
+         stop_location_precinct, stop_location_boro_name) %>% 
+  filter(!is.na(suspect_race_description), suspect_race_description != "(null)") %>% 
+  mutate(updated_race = case_when(
+    suspect_race_description == "BLACK HISPANIC" | suspect_race_description == "WHITE HISPANIC" ~ "HISPANIC",
+    suspect_race_description == "AMERICAN INDIAN/ALASKAN N" ~ "AMERICAN INDIAN/ALASKAN NATIVE",
+    TRUE ~ suspect_race_description)) 
+
+##### 2018 data #####
+raw_sqf_2018 <- read_csv("sqf-2018.csv") %>% 
+  clean_names() %>% 
+  mutate(year = 2018)
+
+sqf_2018 <- raw_sqf_2018 %>% 
+  select(year, stop_duration_minutes, officer_explained_stop_flag, suspect_arrested_flag, 
+         suspect_reported_age, suspect_sex, suspect_race_description,
+         stop_location_precinct, stop_location_boro_name) %>% 
+  filter(!is.na(suspect_race_description), suspect_race_description != "(null)") %>% 
+  mutate(updated_race = case_when(
+    suspect_race_description == "BLACK HISPANIC" | suspect_race_description == "WHITE HISPANIC" ~ "HISPANIC",
+    TRUE ~ suspect_race_description))
+
+##### 2017 data #####
+raw_sqf_2017 <- read_csv("sqf-2017.csv") %>% 
+  clean_names() %>% 
+  mutate(year = 2017)
+
+sqf_2017 <- raw_sqf_2017 %>% 
+  select(year, stop_duration_minutes, officer_explained_stop_flag, suspect_arrested_flag, 
+         suspect_reported_age, suspect_sex, suspect_race_description,
+         stop_location_precinct, stop_location_boro_name) %>% 
+  filter(!is.na(suspect_race_description), suspect_race_description != "(null)", 
+         suspect_race_description != "MALE") %>% 
+  mutate(updated_race = case_when(
+    suspect_race_description == "BLACK HISPANIC" | suspect_race_description == "WHITE HISPANIC" ~ "HISPANIC",
+    suspect_race_description == "AMER IND" ~ "AMERICAN INDIAN/ALASKAN NATIVE",
+    suspect_race_description == "ASIAN/PAC.ISL" ~ "ASIAN / PACIFIC ISLANDER",
+    TRUE ~ suspect_race_description)) %>% 
+  mutate(stop_location_boro_name = case_when(
+    stop_location_boro_name == "STATEN IS" ~ "STATEN ISLAND",
+    TRUE ~ stop_location_boro_name))
+
+##### 2016 data #####
+# Column names are all different, so we need to rename the columns that we will be using
+old_names <- c("perstop", "explnstp", "arstmade", "age", "sex", "race", "addrpct", "city")
+new_names <- c("stop_duration_minutes", "officer_explained_stop_flag", "suspect_arrested_flag", 
+               "suspect_reported_age", "suspect_sex", "suspect_race_description",
+               "stop_location_precinct", "stop_location_boro_name")
+
+raw_sqf_2016 <- read_csv("sqf-2016.csv") %>% 
+  clean_names() %>% 
+  mutate(year = 2016) %>% 
+  rename_at(vars(one_of(old_names)), ~ new_names)
+
+sqf_2016 <- raw_sqf_2016 %>% 
+  select(year, stop_duration_minutes, officer_explained_stop_flag, suspect_arrested_flag, 
+         suspect_reported_age, suspect_sex, suspect_race_description,
+         stop_location_precinct, stop_location_boro_name) %>% 
+  filter(!is.na(suspect_race_description), suspect_race_description != "(null)",
+         suspect_race_description != "Z") %>% 
+  # race is coded by letters, so we have to rename everything manually
+  mutate(updated_race = case_when(
+    suspect_race_description == "P" | suspect_race_description == "Q" ~ "HISPANIC",
+    suspect_race_description == "A" ~ "ASIAN / PACIFIC ISLANDER",
+    suspect_race_description == "B" ~ "BLACK",
+    suspect_race_description == "I" ~ "AMERICAN INDIAN/ALASKAN NATIVE",
+    suspect_race_description == "U" ~ "MIDDLE EASTERN/SOUTHWEST ASIAN",
+    suspect_race_description == "W" ~ "WHITE",
+    TRUE ~ suspect_race_description)) %>% 
+  mutate(stop_location_boro_name = case_when(
+    stop_location_boro_name == "STATEN IS" ~ "STATEN ISLAND",
+    TRUE ~ stop_location_boro_name))
+
+##### 2015 data #####
+# 2015 data is similar to 2016, so the same renaming steps are required
+raw_sqf_2015 <- read_csv("sqf-2015.csv") %>% 
+  clean_names() %>% 
+  mutate(year = 2015) %>% 
+  rename_at(vars(one_of(old_names)), ~ new_names)
+
+sqf_2015 <- raw_sqf_2015 %>% 
+  select(year, stop_duration_minutes, officer_explained_stop_flag, suspect_arrested_flag, 
+         suspect_reported_age, suspect_sex, suspect_race_description,
+         stop_location_precinct, stop_location_boro_name) %>% 
+  filter(!is.na(suspect_race_description), suspect_race_description != "(null)",
+         suspect_race_description != "Z") %>% 
+  # race is coded by letters, so we have to rename everything manually
+  mutate(updated_race = case_when(
+    suspect_race_description == "P" | suspect_race_description == "Q" ~ "HISPANIC",
+    suspect_race_description == "A" ~ "ASIAN / PACIFIC ISLANDER",
+    suspect_race_description == "B" ~ "BLACK",
+    suspect_race_description == "I" ~ "AMERICAN INDIAN/ALASKAN NATIVE",
+    suspect_race_description == "U" ~ "MIDDLE EASTERN/SOUTHWEST ASIAN",
+    suspect_race_description == "W" ~ "WHITE",
+    TRUE ~ suspect_race_description)) %>% 
+  mutate(stop_location_boro_name = case_when(
+    stop_location_boro_name == "STATEN IS" ~ "STATEN ISLAND",
+    TRUE ~ stop_location_boro_name))
+
+##### 2014 data #####
+# 2015 data is similar to 2015/16, so the same renaming steps are required
+raw_sqf_2014 <- read_csv("sqf-2014.csv") %>% 
+  clean_names() %>% 
+  mutate(year = 2014) %>% 
+  rename_at(vars(one_of(old_names)), ~ new_names)
+
+sqf_2014 <- raw_sqf_2014 %>% 
+  select(year, stop_duration_minutes, officer_explained_stop_flag, suspect_arrested_flag, 
+         suspect_reported_age, suspect_sex, suspect_race_description,
+         stop_location_precinct, stop_location_boro_name) %>% 
+  filter(!is.na(suspect_race_description), suspect_race_description != "(null)",
+         suspect_race_description != "Z") %>% 
+  # race is coded by letters, so we have to rename everything manually
+  mutate(updated_race = case_when(
+    suspect_race_description == "P" | suspect_race_description == "Q" ~ "HISPANIC",
+    suspect_race_description == "A" ~ "ASIAN / PACIFIC ISLANDER",
+    suspect_race_description == "B" ~ "BLACK",
+    suspect_race_description == "I" ~ "AMERICAN INDIAN/ALASKAN NATIVE",
+    suspect_race_description == "U" ~ "MIDDLE EASTERN/SOUTHWEST ASIAN",
+    suspect_race_description == "W" ~ "WHITE",
+    TRUE ~ suspect_race_description))
+
+
+# Merging all dataframes using rbind
+merge_df <- rbind(sqf_2014,sqf_2015,sqf_2016,sqf_2017,sqf_2018,sqf_2019,sqf_2020,sqf_2021,sqf_2022,sqf_2023)
+
+# Race check: check whether racial groups correctly formatted
+race_summarized <- merge_df %>% 
+  group_by(updated_race) %>% 
+  summarize(total_stops = n()) ## number of stops per racial group
+
+# Borough check: check whether boroughs correctly named
+borough_summarized <- merge_df %>% 
+  filter(stop_location_boro_name != "(null)", 
+         stop_location_boro_name %in% c("BRONX", "BROOKLYN", "MANHATTAN", "QUEENS", "STATEN ISLAND")) %>% 
+  group_by(stop_location_boro_name) %>% 
+  summarize(total_stops = n())
+
+write_csv(merge_df, "all-police-stops.csv")

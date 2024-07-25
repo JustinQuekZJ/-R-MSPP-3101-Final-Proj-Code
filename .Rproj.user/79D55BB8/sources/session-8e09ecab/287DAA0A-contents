@@ -1,0 +1,11 @@
+library(tidyverse)
+library(janitor)
+
+maj_crimes <- read_csv("major-crimes-nyc.csv") %>% 
+  clean_names() %>% 
+  mutate(total = murder+rape+felony_sex+robbery+fel_assault+g_larceny+shooting)
+
+maj_crimes_summarized <- maj_crimes %>% 
+  group_by(race) %>% 
+  summarize(total_crimes = sum(total)) %>% 
+  mutate(prop_crimes = total_crimes/sum(total_crimes))

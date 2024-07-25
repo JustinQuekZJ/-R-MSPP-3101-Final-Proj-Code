@@ -1,0 +1,140 @@
+library(tidyverse)
+library(janitor)
+library(lubridate)
+
+merge_df <- read_csv("all-police-stops.csv")
+
+##### VISUALIZATION #####
+
+## 1. Visualizing stops by year
+stops_per_year <- merge_df %>% 
+  group_by(year) %>% 
+  summarize(total_stops = n()) ##no. of stops per year
+
+stops_year_viz <- ggplot(stops_per_year)+
+  geom_line(mapping = aes(x = year, y = total_stops))+
+  #geom_point(mapping = aes(x = year, y = total_stops))+
+  geom_vline(xintercept = c(2014, 2021), linetype = "dashed", color = "darkgrey")+
+  scale_y_continuous(
+    limits = c(0, 50000),
+    labels = scales::unit_format(scale = 1/1000, unit = "K")
+  )+
+  labs(
+    title = "Police stops have decreased since the start of the De Blasio Administration",
+    subtitle = "No. of police stops year-on-year",
+    y = "No. of Police Stops",
+    x = NULL,
+    caption = "Source: https://www.nyc.gov/site/nypd/stats/reports-analysis/stopfrisk.page"
+  )+
+  theme_minimal()
+
+stops_year_viz
+
+## 2. Visualizing stops by year, broken down by race
+race_stops_per_year <- merge_df %>% 
+  group_by(year, updated_race) %>% 
+  summarize(total_stops = n()) ##no. of stops per year
+
+race_stops_year_viz <- ggplot(race_stops_per_year)+
+  aes(x = year, y = total_stops, fill = reorder(updated_race, -total_stops))+
+  geom_area(position = "stack", alpha = 0.8) +
+  geom_vline(xintercept = c(2014, 2021), linetype = "dashed", color = "darkgrey")+
+  scale_y_continuous(
+    limits = c(0, 50000),
+    labels = scales::unit_format(scale = 1/1000, unit = "K")
+  )+
+  labs(
+    title = "Police stops have decreased since the start of the De Blasio Administration",
+    subtitle = "No. of police stops year-on-year",
+    y = "No. of Police Stops",
+    x = NULL,
+    caption = "Source: https://www.nyc.gov/site/nypd/stats/reports-analysis/stopfrisk.page"
+  )+
+  theme(
+    legend.key.size = unit(0.3, "cm"), 
+    legend.spacing.y = unit(0.2, "cm")
+  )+
+  theme_minimal()
+
+race_stops_year_viz
+
+## 3. Visualizing stops vs population composition per race
+merge_df_2 <- merge_df %>% 
+  mutate(updated_race = if_else(
+    condition = updated_race == "MIDDLE EASTERN/SOUTHWEST ASIAN",
+    true = "ASIAN / PACIFIC ISLANDER",
+    false = updated_race))
+
+race_prop <- merge_df_2 %>% 
+  group_by(updated_race) %>% 
+  summarize(total_stops = n()) %>% 
+  mutate(prop_stops = total_stops/nrow(merge_df)) %>% 
+  mutate(prop_pop = c(0.006, 0.146, 0.231, 0.29, 0.312))
+
+# Convert to long format to plot side-by-side bar plot
+race_prop_long <- race_prop %>%
+  pivot_longer(cols = c(prop_stops, prop_pop), names_to = "measure", values_to = "value")
+
+race_prop_long_viz <- ggplot(race_prop_long, aes(x = updated_race, y = value, fill = measure))+
+  geom_bar(stat = "identity", position = position_dodge(width = 0.7), width = 0.6)+
+  scale_fill_manual(name = NULL, 
+                    values = c("prop_stops" = "#02077d", "prop_pop" = "#595959"),
+                    labels = c("prop_stops" = "Police Stops", "prop_pop" = "Population"))+
+  labs(
+    title = "Blacks are overrepresented in police stops",
+    subtitle = "Comparison of stops vs population proportions by race",
+    y = "Proportion",
+    x = NULL,
+    caption = "Source: https://www.census.gov/quickfacts/fact/table/newyorkcitynewyork"
+  )+
+  theme_minimal()
+
+race_prop_long_viz
+
+## 4. Visualizing arrests per race
+
+# 2 visualizations for this part: 1) visualization of the proportion of 
+# arrests per race, showing that they are roughly similar, and 2) viz of
+# raw number of Y/N arrests by race, to show that while proportion is 
+# similar per race, a large number of innocent Blacks are being stopped
+
+arrests_by_race_1 <- merge_df_2 %>% 
+  group_by(updated_race) %>% 
+  summarize(total_stops = n(),
+            arrests = sum(suspect_arrested_flag == "Y"),
+            prop_arrests = arrests/total_stops) 
+
+arrest_prop_viz_1 <- ggplot(arrests_by_race_1)+
+  aes(x = updated_race, y = prop_arrests)+
+  geom_bar(stat = "identity")+
+  scale_y_continuous(limits = c(0, 1))+
+  labs(
+    title = "Arrest proportions are similar across races",
+    subtitle = "Proportion of stops resulting in arrests",
+    y = "Proportion",
+    x = NULL,
+    caption = "Source: https://www.nyc.gov/site/nypd/stats/reports-analysis/stopfrisk.page"
+  )+
+  theme_minimal()
+
+arrest_prop_viz_1
+
+arrests_by_race_2 <- merge_df_2 %>% 
+  group_by(updated_race, suspect_arrested_flag) %>% 
+  summarize(total_stops = n())
+
+arrest_prop_viz_2 <- ggplot(arrests_by_race_2, aes(x = updated_race, y = total_stops, fill = suspect_arrested_flag))+
+  geom_bar(stat = "identity", position = position_dodge(width = 0.7), width = 0.6)+
+  scale_fill_manual(name = "Arrested?", 
+                    values = c("Y" = "#02077d", "N" = "#595959"),
+                    labels = c("Y" = "Yes", "N" = "No"))+
+  labs(
+    title = "A large number of innocent Blacks are being stopped",
+    subtitle = "Comparison of arrests by race",
+    y = "No. of stops",
+    x = NULL,
+    caption = "Source: https://www.nyc.gov/site/nypd/stats/reports-analysis/stopfrisk.page"
+  )+
+  theme_minimal()
+
+arrest_prop_viz_2

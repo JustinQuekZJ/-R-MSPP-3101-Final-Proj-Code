@@ -88,12 +88,16 @@ merge_df_2 <- merge_df %>%
     updated_race == "AMERICAN INDIAN/ALASKAN NATIVE" ~ "AMERICAN INDIAN",
     TRUE ~ updated_race
   ))
+# Note: I labelled "Middle Eastern/Southwest Asian" as "Asian" in alignment
+# with the population breakdown. It should not affect the results much because
+# these two groups have very minimal representation among police stops.
 
 race_prop <- merge_df_2 %>% 
   group_by(updated_race) %>% 
   summarize(total_stops = n()) %>% 
   mutate(prop_stops = total_stops/nrow(merge_df_2)) %>% 
   mutate(prop_pop = c(0.0018, 0.148, 0.203, 0.291, 0.305))
+# Added in population proportions for each racial group
 
 # Convert to long format to plot side-by-side bar plot
 race_prop_long <- race_prop %>%
@@ -162,6 +166,7 @@ ggsave("[4] arrest_prop_viz.png", arrest_prop_viz, width = 10, height = 6)
 maj_crimes <- read_csv("major-crimes-nyc.csv") %>% 
   clean_names() %>% 
   mutate(total = murder+rape+felony_sex+robbery+fel_assault+g_larceny+shooting)
+# Combined the data for each major crime into a single statistic
 
 maj_crimes_summarized <- maj_crimes %>% 
   group_by(race) %>% 
